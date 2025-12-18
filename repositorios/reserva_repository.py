@@ -1,5 +1,6 @@
 from config.database import ConexionBD
 from modelos.reserva import Reserva
+from utils.sql_compat import query_compat
 
 class RepositorioReserva:
     def __init__(self):
@@ -7,11 +8,11 @@ class RepositorioReserva:
 
     def guardar(self, reserva):
         cursor = self.bd.obtener_cursor()
-        sql = """
+        sql = query_compat("""
             INSERT INTO reservas (usuario_id, paquete_id, fecha_reserva, estado)
             VALUES (%s, %s, %s, %s)
             RETURNING id
-        """
+        """)
         try:
             cursor.execute(sql, (reserva.usuario_id, reserva.paquete_id, reserva.fecha_reserva, reserva.estado))
             reserva.id_reserva = cursor.fetchone()[0]
@@ -25,6 +26,6 @@ class RepositorioReserva:
     def obtener_por_usuario(self, usuario_id):
         cursor = self.bd.obtener_cursor()
         sql = "SELECT id, usuario_id, paquete_id, fecha_reserva, estado FROM reservas WHERE usuario_id = %s"
-        cursor.execute(sql, (usuario_id,))
+        cursor.execute(query_compat(sql), (usuario_id,))
         filas = cursor.fetchall()
         return [Reserva(*f) for f in filas]

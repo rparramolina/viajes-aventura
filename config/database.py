@@ -1,5 +1,7 @@
-import psycopg2
-from config.settings import DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT
+from config.settings import (
+    DB_ENGINE, DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT,
+    SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASS, SQL_DRIVER
+)
 
 class ConexionBD:
     _instancia = None
@@ -11,17 +13,24 @@ class ConexionBD:
         return cls._instancia
 
     def conectar(self):
-        if self.conexion is None or self.conexion.closed:
+        if self.conexion is None or (hasattr(self.conexion, 'closed') and self.conexion.closed):
             try:
-                self.conexion = psycopg2.connect(
-                    host=DB_HOST,
-                    database=DB_NAME,
-                    user=DB_USER,
-                    password=DB_PASS,
-                    port=DB_PORT
-                )
-                print("Conexión a base de datos establecida exitosamente.")
-            except psycopg2.Error as e:
+                if DB_ENGINE == "sqlserver":
+                    import pyodbc
+                    conn_str = f'DRIVER={SQL_DRIVER};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};UID={SQL_USER};PWD={SQL_PASS}'
+                    self.conexion = pyodbc.connect(conn_str)
+                    print("Conexión a SQL Server establecida exitosamente.")
+                else:
+                    import psycopg2
+                    self.conexion = psycopg2.connect(
+                        host=DB_HOST,
+                        database=DB_NAME,
+                        user=DB_USER,
+                        password=DB_PASS,
+                        port=DB_PORT
+                    )
+                    print("Conexión a PostgreSQL establecida exitosamente.")
+            except Exception as e:
                 print(f"Error al conectar a la base de datos: {e}")
                 self.conexion = None
         return self.conexion

@@ -1,6 +1,7 @@
 from config.database import ConexionBD
 from modelos.paquete import PaqueteTuristico
 from repositorios.destino_repository import RepositorioDestino
+from utils.sql_compat import query_compat
 
 class RepositorioPaquete:
     def __init__(self):
@@ -15,15 +16,15 @@ class RepositorioPaquete:
 
         if paquete.id_paquete:
             # Update
-            sql_update = """
+            sql_update = query_compat("""
                 UPDATE paquetes SET nombre=%s, fecha_inicio=%s, fecha_fin=%s, precio_total=%s
                 WHERE id=%s
-            """
+            """)
             valores = (paquete.nombre, paquete.fecha_inicio, paquete.fecha_fin, paquete.precio_total, paquete.id_paquete)
             try:
                 cursor.execute(sql_update, valores)
                 # Actualizar destinos: Borramos y reinsertamos relaciones (enfoque simple)
-                cursor.execute("DELETE FROM paquete_destinos WHERE paquete_id=%s", (paquete.id_paquete,))
+                cursor.execute(query_compat("DELETE FROM paquete_destinos WHERE paquete_id=%s"), (paquete.id_paquete,))
                 for destino in paquete.destinos:
                     cursor.execute("INSERT INTO paquete_destinos (paquete_id, destino_id) VALUES (%s, %s)", 
                                 (paquete.id_paquete, destino.id_destino))
@@ -35,11 +36,11 @@ class RepositorioPaquete:
                 return None
         else:
             # Insert
-            sql_insert = """
+            sql_insert = query_compat("""
                 INSERT INTO paquetes (nombre, fecha_inicio, fecha_fin, precio_total)
                 VALUES (%s, %s, %s, %s)
                 RETURNING id
-            """
+            """)
             valores = (paquete.nombre, paquete.fecha_inicio, paquete.fecha_fin, paquete.precio_total)
             try:
                 cursor.execute(sql_insert, valores)
@@ -58,7 +59,7 @@ class RepositorioPaquete:
 
     def obtener_todos(self):
         cursor = self.bd.obtener_cursor()
-        cursor.execute("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes")
+        cursor.execute(query_compat("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes"))
         filas = cursor.fetchall()
         paquetes = []
         for fila in filas:
@@ -69,7 +70,7 @@ class RepositorioPaquete:
 
     def obtener_por_id(self, id_paquete):
         cursor = self.bd.obtener_cursor()
-        cursor.execute("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes WHERE id = %s", (id_paquete,))
+        cursor.execute(query_compat("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes WHERE id = %s"), (id_paquete,))
         fila = cursor.fetchone()
         if fila:
             paquete = PaqueteTuristico(*fila)
@@ -85,7 +86,7 @@ class RepositorioPaquete:
             JOIN paquete_destinos pd ON d.id = pd.destino_id
             WHERE pd.paquete_id = %s
         """
-        cursor.execute(sql, (paquete_id,))
+        cursor.execute(query_compat(sql), (paquete_id,))
         filas = cursor.fetchall()
         # Importamos Destino aquí o usamos los datos crudos, idealmente usamos modelo
         from modelos.destino import Destino 
@@ -94,7 +95,7 @@ class RepositorioPaquete:
     def eliminar(self, id_paquete):
         cursor = self.bd.obtener_cursor()
         try:
-            cursor.execute("DELETE FROM paquetes WHERE id = %s", (id_paquete,))
+            cursor.execute(query_compat("DELETE FROM paquetes WHERE id = %s"), (id_paquete,))
             self.bd.conexion.commit()
             return True
         except Exception as e:

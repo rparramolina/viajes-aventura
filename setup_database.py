@@ -11,8 +11,11 @@ def inicializar_bd():
 
     cursor = conn.cursor()
     
-    # Leer el esquema
-    ruta_esquema = os.path.join(os.path.dirname(__file__), 'esquema.sql')
+    # Seleccionar el esquema según el motor
+    from config.settings import DB_ENGINE
+    nombre_esquema = 'esquema_sqlserver.sql' if DB_ENGINE == 'sqlserver' else 'esquema.sql'
+    
+    ruta_esquema = os.path.join(os.path.dirname(__file__), nombre_esquema)
     with open(ruta_esquema, 'r') as f:
         sql = f.read()
 

@@ -1,5 +1,6 @@
 from config.database import ConexionBD
 from modelos.destino import Destino
+from utils.sql_compat import query_compat
 
 class RepositorioDestino:
     def __init__(self):
@@ -9,18 +10,18 @@ class RepositorioDestino:
         cursor = self.bd.obtener_cursor()
         if destino.id_destino:
             # Actualizar
-            sql = """
+            sql = query_compat("""
                 UPDATE destinos SET nombre=%s, descripcion=%s, actividades=%s, costo_base=%s
                 WHERE id=%s
-            """
+            """)
             valores = (destino.nombre, destino.descripcion, destino.actividades, destino.costo_base, destino.id_destino)
         else:
             # Insertar
-            sql = """
+            sql = query_compat("""
                 INSERT INTO destinos (nombre, descripcion, actividades, costo_base)
                 VALUES (%s, %s, %s, %s)
                 RETURNING id
-            """
+            """)
             valores = (destino.nombre, destino.descripcion, destino.actividades, destino.costo_base)
 
         try:
@@ -36,13 +37,13 @@ class RepositorioDestino:
 
     def obtener_todos(self):
         cursor = self.bd.obtener_cursor()
-        cursor.execute("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos")
+        cursor.execute(query_compat("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos"))
         filas = cursor.fetchall()
         return [Destino(*fila) for fila in filas]
 
     def obtener_por_id(self, id_destino):
         cursor = self.bd.obtener_cursor()
-        cursor.execute("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos WHERE id = %s", (id_destino,))
+        cursor.execute(query_compat("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos WHERE id = %s"), (id_destino,))
         resultado = cursor.fetchone()
         if resultado:
             return Destino(*resultado)
@@ -51,7 +52,7 @@ class RepositorioDestino:
     def eliminar(self, id_destino):
         cursor = self.bd.obtener_cursor()
         try:
-            cursor.execute("DELETE FROM destinos WHERE id = %s", (id_destino,))
+            cursor.execute(query_compat("DELETE FROM destinos WHERE id = %s"), (id_destino,))
             self.bd.conexion.commit()
             return True
         except Exception as e:
