@@ -1,3 +1,4 @@
+from decimal import Decimal
 from config.database import ConexionBD
 from config.settings import DB_ENGINE
 from modelos.paquete import PaqueteTuristico
@@ -16,9 +17,9 @@ class RepositorioPaquete:
         
         if paquete.destinos:
             # Requisitos: Precio basado en destinos y fechas (duración)
-            costo_destinos = sum(d.costo_base for d in paquete.destinos)
-            costo_diario = 50.0  # Factor de servicios por día
-            duracion = paquete.duracion_dias
+            costo_destinos = sum(Decimal(str(d.costo_base)) for d in paquete.destinos)
+            costo_diario = Decimal('50.0')  # Factor de servicios por día
+            duracion = Decimal(str(paquete.duracion_dias))
             paquete.precio_total = costo_destinos + (costo_diario * duracion)
 
         if paquete.id_paquete:
