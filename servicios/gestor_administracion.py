@@ -15,8 +15,15 @@ class GestorAdministracion:
     def listar_destinos(self):
         return self.repo_destino.obtener_todos()
 
+    def obtener_destino_por_id(self, id_destino):
+        return self.repo_destino.obtener_por_id(id_destino)
+
     def eliminar_destino(self, id_destino):
         return self.repo_destino.eliminar(id_destino)
+
+    def editar_destino(self, id_destino, nombre, descripcion, actividades, costo_base):
+        destino = Destino(id_destino, nombre, descripcion, actividades, costo_base)
+        return self.repo_destino.guardar(destino)
 
     def crear_paquete(self, nombre, fecha_inicio, fecha_fin, destinos_ids):
         # Primero recuperamos los objetos destino

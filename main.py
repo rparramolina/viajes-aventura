@@ -95,7 +95,8 @@ class Aplicacion:
         print("\n--- GESTIÓN DE DESTINOS ---")
         print("1. Crear Destino")
         print("2. Listar Destinos")
-        print("3. Eliminar Destino")
+        print("3. Editar Destino")
+        print("4. Eliminar Destino")
         print("0. Volver")
         opcion = input("Opción: ")
         if opcion == "1":
@@ -110,6 +111,26 @@ class Aplicacion:
             for d in destinos:
                 print(d)
         elif opcion == "3":
+            destinos = self.admin.listar_destinos()
+            for d in destinos:
+                print(f"{d.id_destino}: {d.nombre}")
+            id_destino = input("ID del Destino a editar: ")
+            destino = self.admin.obtener_destino_por_id(id_destino)
+            if destino:
+                print(f"Editando: {destino.nombre}")
+                nombre = input(f"Nuevo Nombre [{destino.nombre}]: ") or destino.nombre
+                desc = input(f"Nueva Descripción [{destino.descripcion}]: ") or destino.descripcion
+                act = input(f"Nuevas Actividades [{destino.actividades}]: ") or destino.actividades
+                costo_input = input(f"Nuevo Costo Base [{destino.costo_base}]: ")
+                costo = float(costo_input) if costo_input else destino.costo_base
+                
+                if self.admin.editar_destino(id_destino, nombre, desc, act, costo):
+                    print("Destino actualizado exitosamente.")
+                else:
+                    print("Error al actualizar el destino.")
+            else:
+                print("Destino no encontrado.")
+        elif opcion == "4":
             id_destino = input("ID del Destino a eliminar: ")
             if self.admin.eliminar_destino(id_destino):
                 print("Destino eliminado exitosamente.")
