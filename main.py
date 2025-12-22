@@ -95,6 +95,7 @@ class Aplicacion:
         print("\n--- GESTIÓN DE DESTINOS ---")
         print("1. Crear Destino")
         print("2. Listar Destinos")
+        print("3. Eliminar Destino")
         print("0. Volver")
         opcion = input("Opción: ")
         if opcion == "1":
@@ -108,6 +109,12 @@ class Aplicacion:
             destinos = self.admin.listar_destinos()
             for d in destinos:
                 print(d)
+        elif opcion == "3":
+            id_destino = input("ID del Destino a eliminar: ")
+            if self.admin.eliminar_destino(id_destino):
+                print("Destino eliminado exitosamente.")
+            else:
+                print("Error al eliminar el destino. Verifique el ID.")
     
     def menu_paquetes(self):
         print("\n--- GESTIÓN DE PAQUETES ---")

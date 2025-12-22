@@ -1,6 +1,7 @@
 from config.settings import (
     DB_ENGINE, DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT,
-    SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASS, SQL_DRIVER
+    SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASS, SQL_DRIVER,
+    ORACLE_USER, ORACLE_PASS, ORACLE_DSN
 )
 
 class ConexionBD:
@@ -20,8 +21,18 @@ class ConexionBD:
                     conn_str = f'DRIVER={SQL_DRIVER};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};UID={SQL_USER};PWD={SQL_PASS}'
                     self.conexion = pyodbc.connect(conn_str)
                     print("Conexión a SQL Server establecida exitosamente.")
+                elif DB_ENGINE == "oracle":
+                    import oracledb
+                    print(f"Intentando conectar a Oracle con usuario: {ORACLE_USER} a {ORACLE_DSN}")
+                    self.conexion = oracledb.connect(
+                        user=ORACLE_USER,
+                        password=ORACLE_PASS,
+                        dsn=ORACLE_DSN
+                    )
+                    print("Conexión a Oracle establecida exitosamente.")
                 else:
                     import psycopg2
+                    print(f"Intentando conectar a PG con: HOST={DB_HOST}, DB={DB_NAME}, USER={DB_USER}")
                     self.conexion = psycopg2.connect(
                         host=DB_HOST,
                         database=DB_NAME,
@@ -30,18 +41,31 @@ class ConexionBD:
                         port=DB_PORT
                     )
                     print("Conexión a PostgreSQL establecida exitosamente.")
+            # except UnicodeDecodeError:
+            #     print("Error de codificación en el mensaje de error de la BD (probablemente credenciales inválidas o servicio detenido).")
+            #     self.conexion = None
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 print(f"Error al conectar a la base de datos: {e}")
                 self.conexion = None
         return self.conexion
 
     def cerrar(self):
-        if self.conexion and not self.conexion.closed:
-            self.conexion.close()
-            print("Conexión a base de datos cerrada.")
+        if self.conexion:
+            try:
+                if hasattr(self.conexion, 'closed'):
+                    if not self.conexion.closed:
+                        self.conexion.close()
+                        print("Conexión a base de datos cerrada.")
+                else:
+                    self.conexion.close()
+                    print("Conexión a base de datos cerrada.")
+            except Exception as e:
+                print(f"Error al cerrar la conexión: {e}")
 
     def obtener_cursor(self):
-        if self.conexion is None or self.conexion.closed:
+        if self.conexion is None or (hasattr(self.conexion, 'closed') and self.conexion.closed):
             self.conectar()
         if self.conexion:
             return self.conexion.cursor()

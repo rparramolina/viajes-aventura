@@ -6,23 +6,39 @@ def inicializar_bd():
     bd = ConexionBD()
     conn = bd.conectar()
     if not conn:
-        print("No se pudo conectar a la BD. Verifique config/settings.py y que Postgres esté corriendo.")
+        from config.settings import DB_ENGINE
+        print(f"No se pudo conectar a la BD ({DB_ENGINE}). Verifique config/settings.py y el archivo .env.")
         return
 
     cursor = conn.cursor()
     
     # Seleccionar el esquema según el motor
     from config.settings import DB_ENGINE
-    nombre_esquema = 'esquema_sqlserver.sql' if DB_ENGINE == 'sqlserver' else 'esquema.sql'
+    
+    if DB_ENGINE == 'sqlserver':
+        nombre_esquema = 'esquema_sqlserver.sql'
+    elif DB_ENGINE == 'oracle':
+        nombre_esquema = 'esquema_oracle.sql'
+    else:
+        nombre_esquema = 'esquema.sql'
     
     ruta_esquema = os.path.join(os.path.dirname(__file__), nombre_esquema)
     with open(ruta_esquema, 'r') as f:
-        sql = f.read()
+        sql_content = f.read()
 
     try:
-        cursor.execute(sql)
+        if DB_ENGINE == 'oracle':
+            # Oracle: Separar por '/' para ejecutar bloques PL/SQL
+            comandos = sql_content.split('/')
+            for comando in comandos:
+                if comando.strip():
+                    cursor.execute(comando)
+        else:
+            # Postgres/SQLServer: Ejecutar todo el script (dependiendo del driver puede requerir split)
+            cursor.execute(sql_content)
+            
         conn.commit()
-        print("Tablas creadas exitosamente.")
+        print(f"Tablas creadas exitosamente para {DB_ENGINE}.")
     except Exception as e:
         conn.rollback()
         print(f"Error al crear tablas: {e}")

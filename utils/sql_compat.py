@@ -7,6 +7,17 @@ def query_compat(sql):
     """
     from config.settings import DB_ENGINE
     
+    if DB_ENGINE == "oracle":
+        # Oracle uses :1, :2, etc. for positional arguments
+        parts = sql.split('%s')
+        if len(parts) > 1:
+            new_sql = ""
+            for i, part in enumerate(parts[:-1]):
+                new_sql += f"{part}:{i+1}"
+            new_sql += parts[-1]
+            return new_sql
+        return sql
+    
     if DB_ENGINE != "sqlserver":
         return sql
 
