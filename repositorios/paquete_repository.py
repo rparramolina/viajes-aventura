@@ -14,8 +14,12 @@ class RepositorioPaquete:
         if not cursor:
             return None
         
-        if paquete.precio_total == 0 and paquete.destinos:
-            paquete.precio_total = sum(d.costo_base for d in paquete.destinos)
+        if paquete.destinos:
+            # Requisitos: Precio basado en destinos y fechas (duración)
+            costo_destinos = sum(d.costo_base for d in paquete.destinos)
+            costo_diario = 50.0  # Factor de servicios por día
+            duracion = paquete.duracion_dias
+            paquete.precio_total = costo_destinos + (costo_diario * duracion)
 
         if paquete.id_paquete:
             # Update
@@ -125,6 +129,24 @@ class RepositorioPaquete:
         # Importamos Destino aquí o usamos los datos crudos, idealmente usamos modelo
         from modelos.destino import Destino 
         return [Destino(*f) for f in filas]
+
+    def obtener_disponibles(self, fecha_inicio, fecha_fin):
+        cursor = self.bd.obtener_cursor()
+        if not cursor:
+            return []
+        sql = query_compat("""
+            SELECT id, nombre, fecha_inicio, fecha_fin, precio_total 
+            FROM paquetes 
+            WHERE fecha_inicio >= %s AND fecha_fin <= %s
+        """)
+        cursor.execute(sql, (fecha_inicio, fecha_fin))
+        filas = cursor.fetchall()
+        paquetes = []
+        for fila in filas:
+            paquete = PaqueteTuristico(*fila)
+            paquete.destinos = self._obtener_destinos_por_paquete(paquete.id_paquete)
+            paquetes.append(paquete)
+        return paquetes
 
     def eliminar(self, id_paquete):
         cursor = self.bd.obtener_cursor()

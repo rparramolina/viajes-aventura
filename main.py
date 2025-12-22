@@ -18,9 +18,10 @@ class Aplicacion:
             if usuario.es_admin:
                 print("1. Gestionar Destinos")
                 print("2. Gestionar Paquetes")
-            print("3. Ver Paquetes Disponibles")
-            print("4. Reservar Paquete")
-            print("5. Mis Reservas")
+            print("3. Listar Paquetes")
+            print("4. Buscar Paquetes por Fecha")
+            print("5. Reservar Paquete")
+            print("6. Mis Reservas")
             print("0. Cerrar Sesión")
         else:
             print("1. Iniciar Sesión")
@@ -51,8 +52,10 @@ class Aplicacion:
                     elif opcion == "3":
                         self.listar_paquetes()
                     elif opcion == "4":
-                        self.reservar()
+                        self.buscar_paquetes_fecha()
                     elif opcion == "5":
+                        self.reservar()
+                    elif opcion == "6":
                         self.mis_reservas()
                     elif opcion == "0":
                         self.auth.logout()
@@ -62,8 +65,10 @@ class Aplicacion:
                     if opcion == "3":
                         self.listar_paquetes()
                     elif opcion == "4":
-                        self.reservar()
+                        self.buscar_paquetes_fecha()
                     elif opcion == "5":
+                        self.reservar()
+                    elif opcion == "6":
                         self.mis_reservas()
                     elif opcion == "0":
                         self.auth.logout()
@@ -167,6 +172,23 @@ class Aplicacion:
             print("  Destinos:")
             for d in p.destinos:
                 print(f"   - {d.nombre} ({d.actividades})")
+
+    def buscar_paquetes_fecha(self):
+        print("\n--- BUSCAR PAQUETES POR FECHA ---")
+        f_inicio = input("Fecha Inicio (YYYY-MM-DD): ")
+        f_fin = input("Fecha Fin (YYYY-MM-DD): ")
+        try:
+            paquetes = self.admin.buscar_paquetes(date.fromisoformat(f_inicio), date.fromisoformat(f_fin))
+            if not paquetes:
+                print("No se encontraron paquetes para esas fechas.")
+            else:
+                for p in paquetes:
+                    print(p)
+                    print("  Destinos:")
+                    for d in p.destinos:
+                        print(f"   - {d.nombre}")
+        except ValueError:
+            print("Formato de fecha inválido.")
 
     def reservar(self):
         id_paquete = input("ID del Paquete a reservar: ")

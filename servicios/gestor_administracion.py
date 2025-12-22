@@ -40,3 +40,6 @@ class GestorAdministracion:
 
     def listar_paquetes(self):
         return self.repo_paquete.obtener_todos()
+
+    def buscar_paquetes(self, fecha_inicio, fecha_fin):
+        return self.repo_paquete.obtener_disponibles(fecha_inicio, fecha_fin)
