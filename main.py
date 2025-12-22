@@ -89,7 +89,12 @@ class Aplicacion:
         email = input("Email: ")
         password = input("Contraseña: ")
         es_admin_input = input("¿Es administrador? (s/n): ")
-        es_admin = es_admin_input.lower() == 's'
+        #es_admin = es_admin_input.lower() == 's'
+        #es_admin = True if es_admin_input.lower() == 's' else False
+        if es_admin_input.lower() == 's':
+            es_admin = True
+        else:
+            es_admin = False
         try:
             self.auth.registrar_usuario(nombre, email, password, es_admin)
             print("Usuario registrado exitosamente.")

@@ -2,46 +2,39 @@ from config.database import ConexionBD
 import os
 
 def inicializar_bd():
-    print("Inicializando base de datos...")
+    print("Inicializando base de datos Oracle...")
     bd = ConexionBD()
     conn = bd.conectar()
     if not conn:
-        from config.settings import DB_ENGINE
-        print(f"No se pudo conectar a la BD ({DB_ENGINE}). Verifique config/settings.py y el archivo .env.")
+        print("No se pudo conectar a la BD Oracle. Verifique config/settings.py.")
         return
 
     cursor = conn.cursor()
     
-    # Seleccionar el esquema según el motor
-    from config.settings import DB_ENGINE
-    
-    if DB_ENGINE == 'sqlserver':
-        nombre_esquema = 'esquema_sqlserver.sql'
-    elif DB_ENGINE == 'oracle':
-        nombre_esquema = 'esquema_oracle.sql'
-    else:
-        nombre_esquema = 'esquema.sql'
-    
+    nombre_esquema = 'esquema_oracle.sql'
     ruta_esquema = os.path.join(os.path.dirname(__file__), nombre_esquema)
+    
+    if not os.path.exists(ruta_esquema):
+        print(f"Error: No se encontró el archivo de esquema {nombre_esquema}")
+        bd.cerrar()
+        return
+
     with open(ruta_esquema, 'r') as f:
         sql_content = f.read()
 
     try:
-        if DB_ENGINE == 'oracle':
-            # Oracle: Separar por '/' para ejecutar bloques PL/SQL
-            comandos = sql_content.split('/')
-            for comando in comandos:
-                if comando.strip():
-                    cursor.execute(comando)
-        else:
-            # Postgres/SQLServer: Ejecutar todo el script (dependiendo del driver puede requerir split)
-            cursor.execute(sql_content)
+        # Oracle: Separar por '/' para ejecutar bloques PL/SQL
+        comandos = sql_content.split('/')
+        for comando in comandos:
+            clean_comando = comando.strip()
+            if clean_comando:
+                cursor.execute(clean_comando)
             
         conn.commit()
-        print(f"Tablas creadas exitosamente para {DB_ENGINE}.")
+        print("Tablas creadas exitosamente en Oracle.")
     except Exception as e:
         conn.rollback()
-        print(f"Error al crear tablas: {e}")
+        print(f"Error al crear tablas en Oracle: {e}")
     finally:
         bd.cerrar()
 

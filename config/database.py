@@ -1,8 +1,4 @@
-from config.settings import (
-    DB_ENGINE, DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT,
-    SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASS, SQL_DRIVER,
-    ORACLE_USER, ORACLE_PASS, ORACLE_DSN
-)
+from config.settings import ORACLE_USER, ORACLE_PASS, ORACLE_DSN
 
 class ConexionBD:
     _instancia = None
@@ -16,38 +12,18 @@ class ConexionBD:
     def conectar(self):
         if self.conexion is None or (hasattr(self.conexion, 'closed') and self.conexion.closed):
             try:
-                if DB_ENGINE == "sqlserver":
-                    import pyodbc
-                    conn_str = f'DRIVER={SQL_DRIVER};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};UID={SQL_USER};PWD={SQL_PASS}'
-                    self.conexion = pyodbc.connect(conn_str)
-                    print("Conexión a SQL Server establecida exitosamente.")
-                elif DB_ENGINE == "oracle":
-                    import oracledb
-                    print(f"Intentando conectar a Oracle con usuario: {ORACLE_USER} a {ORACLE_DSN}")
-                    self.conexion = oracledb.connect(
-                        user=ORACLE_USER,
-                        password=ORACLE_PASS,
-                        dsn=ORACLE_DSN
-                    )
-                    print("Conexión a Oracle establecida exitosamente.")
-                else:
-                    import psycopg2
-                    print(f"Intentando conectar a PG con: HOST={DB_HOST}, DB={DB_NAME}, USER={DB_USER}")
-                    self.conexion = psycopg2.connect(
-                        host=DB_HOST,
-                        database=DB_NAME,
-                        user=DB_USER,
-                        password=DB_PASS,
-                        port=DB_PORT
-                    )
-                    print("Conexión a PostgreSQL establecida exitosamente.")
-            # except UnicodeDecodeError:
-            #     print("Error de codificación en el mensaje de error de la BD (probablemente credenciales inválidas o servicio detenido).")
-            #     self.conexion = None
+                import oracledb
+                print(f"Intentando conectar a Oracle con usuario: {ORACLE_USER} a {ORACLE_DSN}")
+                self.conexion = oracledb.connect(
+                    user=ORACLE_USER,
+                    password=ORACLE_PASS,
+                    dsn=ORACLE_DSN
+                )
+                print("Conexión a Oracle establecida exitosamente.")
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                print(f"Error al conectar a la base de datos: {e}")
+                print(f"Error al conectar a la base de datos Oracle: {e}")
                 self.conexion = None
         return self.conexion
 

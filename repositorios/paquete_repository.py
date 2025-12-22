@@ -1,9 +1,8 @@
 from decimal import Decimal
 from config.database import ConexionBD
-from config.settings import DB_ENGINE
 from modelos.paquete import PaqueteTuristico
 from repositorios.destino_repository import RepositorioDestino
-from utils.sql_compat import query_compat
+import oracledb
 
 class RepositorioPaquete:
     def __init__(self):
@@ -24,17 +23,17 @@ class RepositorioPaquete:
 
         if paquete.id_paquete:
             # Update
-            sql_update = query_compat("""
-                UPDATE paquetes SET nombre=%s, fecha_inicio=%s, fecha_fin=%s, precio_total=%s
-                WHERE id=%s
-            """)
+            sql_update = """
+                UPDATE paquetes SET nombre=:1, fecha_inicio=:2, fecha_fin=:3, precio_total=:4
+                WHERE id=:5
+            """
             valores = (paquete.nombre, paquete.fecha_inicio, paquete.fecha_fin, paquete.precio_total, paquete.id_paquete)
             try:
                 cursor.execute(sql_update, valores)
                 # Actualizar destinos: Borramos y reinsertamos relaciones (enfoque simple)
-                cursor.execute(query_compat("DELETE FROM paquete_destinos WHERE paquete_id=%s"), (paquete.id_paquete,))
+                cursor.execute("DELETE FROM paquete_destinos WHERE paquete_id=:1", (paquete.id_paquete,))
                 for destino in paquete.destinos:
-                    cursor.execute("INSERT INTO paquete_destinos (paquete_id, destino_id) VALUES (%s, %s)", 
+                    cursor.execute("INSERT INTO paquete_destinos (paquete_id, destino_id) VALUES (:1, :2)", 
                                 (paquete.id_paquete, destino.id_destino))
                 self.bd.conexion.commit()
                 return paquete
@@ -43,44 +42,20 @@ class RepositorioPaquete:
                 print(f"Error al actualizar paquete: {e}")
                 return None
         else:
-            # Insert
-            if DB_ENGINE == "oracle":
-                import oracledb
-                sql_insert = """
-                    INSERT INTO paquetes (nombre, fecha_inicio, fecha_fin, precio_total)
-                    VALUES (:1, :2, :3, :4)
-                    RETURNING id INTO :5
-                """
-                valores = (paquete.nombre, paquete.fecha_inicio, paquete.fecha_fin, paquete.precio_total)
-                try:
-                    id_variable = cursor.var(oracledb.NUMBER)
-                    cursor.execute(sql_insert, (*valores, id_variable))
-                    paquete.id_paquete = id_variable.getvalue()[0]
-                    
-                    for destino in paquete.destinos:
-                        # query_compat handles placeholders for Oracle (:1, :2)
-                        cursor.execute(query_compat("INSERT INTO paquete_destinos (paquete_id, destino_id) VALUES (%s, %s)"), 
-                                    (paquete.id_paquete, destino.id_destino))
-                    
-                    self.bd.conexion.commit()
-                    return paquete
-                except Exception as e:
-                    self.bd.conexion.rollback()
-                    print(f"Error al crear paquete (Oracle): {e}")
-                    return None
-
-            sql_insert = query_compat("""
+            # Insert (Oracle specific)
+            sql_insert = """
                 INSERT INTO paquetes (nombre, fecha_inicio, fecha_fin, precio_total)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id
-            """)
+                VALUES (:1, :2, :3, :4)
+                RETURNING id INTO :5
+            """
             valores = (paquete.nombre, paquete.fecha_inicio, paquete.fecha_fin, paquete.precio_total)
             try:
-                cursor.execute(sql_insert, valores)
-                paquete.id_paquete = cursor.fetchone()[0]
+                id_variable = cursor.var(oracledb.NUMBER)
+                cursor.execute(sql_insert, (*valores, id_variable))
+                paquete.id_paquete = id_variable.getvalue()[0]
                 
                 for destino in paquete.destinos:
-                    cursor.execute("INSERT INTO paquete_destinos (paquete_id, destino_id) VALUES (%s, %s)", 
+                    cursor.execute("INSERT INTO paquete_destinos (paquete_id, destino_id) VALUES (:1, :2)", 
                                 (paquete.id_paquete, destino.id_destino))
                 
                 self.bd.conexion.commit()
@@ -94,7 +69,7 @@ class RepositorioPaquete:
         cursor = self.bd.obtener_cursor()
         if not cursor:
             return []
-        cursor.execute(query_compat("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes"))
+        cursor.execute("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes")
         filas = cursor.fetchall()
         paquetes = []
         for fila in filas:
@@ -107,7 +82,7 @@ class RepositorioPaquete:
         cursor = self.bd.obtener_cursor()
         if not cursor:
             return None
-        cursor.execute(query_compat("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes WHERE id = %s"), (id_paquete,))
+        cursor.execute("SELECT id, nombre, fecha_inicio, fecha_fin, precio_total FROM paquetes WHERE id = :1", (id_paquete,))
         fila = cursor.fetchone()
         if fila:
             paquete = PaqueteTuristico(*fila)
@@ -123,11 +98,10 @@ class RepositorioPaquete:
             SELECT d.id, d.nombre, d.descripcion, d.actividades, d.costo_base
             FROM destinos d
             JOIN paquete_destinos pd ON d.id = pd.destino_id
-            WHERE pd.paquete_id = %s
+            WHERE pd.paquete_id = :1
         """
-        cursor.execute(query_compat(sql), (paquete_id,))
+        cursor.execute(sql, (paquete_id,))
         filas = cursor.fetchall()
-        # Importamos Destino aquí o usamos los datos crudos, idealmente usamos modelo
         from modelos.destino import Destino 
         return [Destino(*f) for f in filas]
 
@@ -135,11 +109,11 @@ class RepositorioPaquete:
         cursor = self.bd.obtener_cursor()
         if not cursor:
             return []
-        sql = query_compat("""
+        sql = """
             SELECT id, nombre, fecha_inicio, fecha_fin, precio_total 
             FROM paquetes 
-            WHERE fecha_inicio >= %s AND fecha_fin <= %s
-        """)
+            WHERE fecha_inicio >= :1 AND fecha_fin <= :2
+        """
         cursor.execute(sql, (fecha_inicio, fecha_fin))
         filas = cursor.fetchall()
         paquetes = []
@@ -154,7 +128,7 @@ class RepositorioPaquete:
         if not cursor:
             return False
         try:
-            cursor.execute(query_compat("DELETE FROM paquetes WHERE id = %s"), (id_paquete,))
+            cursor.execute("DELETE FROM paquetes WHERE id = :1", (id_paquete,))
             self.bd.conexion.commit()
             return True
         except Exception as e:

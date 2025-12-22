@@ -1,7 +1,6 @@
 from config.database import ConexionBD
-from config.settings import DB_ENGINE
 from modelos.destino import Destino
-from utils.sql_compat import query_compat
+import oracledb
 
 class RepositorioDestino:
     def __init__(self):
@@ -11,57 +10,46 @@ class RepositorioDestino:
         cursor = self.bd.obtener_cursor()
         if not cursor:
             return None
+        
         if destino.id_destino:
             # Actualizar
-            sql = query_compat("""
-                UPDATE destinos SET nombre=%s, descripcion=%s, actividades=%s, costo_base=%s
-                WHERE id=%s
-            """)
+            sql = """
+                UPDATE destinos SET nombre=:1, descripcion=:2, actividades=:3, costo_base=:4
+                WHERE id=:5
+            """
             valores = (destino.nombre, destino.descripcion, destino.actividades, destino.costo_base, destino.id_destino)
+            try:
+                cursor.execute(sql, valores)
+                self.bd.conexion.commit()
+                return destino
+            except Exception as e:
+                self.bd.conexion.rollback()
+                print(f"Error al actualizar destino: {e}")
+                return None
         else:
-            # Insertar
-            if DB_ENGINE == "oracle":
-                import oracledb
-                sql = """
-                    INSERT INTO destinos (nombre, descripcion, actividades, costo_base)
-                    VALUES (:1, :2, :3, :4)
-                    RETURNING id INTO :5
-                """
-                valores = (destino.nombre, destino.descripcion, destino.actividades, destino.costo_base)
-                try:
-                    id_variable = cursor.var(oracledb.NUMBER)
-                    cursor.execute(sql, (*valores, id_variable))
-                    destino.id_destino = id_variable.getvalue()[0]
-                    self.bd.conexion.commit()
-                    return destino
-                except Exception as e:
-                    self.bd.conexion.rollback()
-                    print(f"Error al guardar destino (Oracle): {e}")
-                    return None
-
-            sql = query_compat("""
+            # Insertar (Oracle specific)
+            sql = """
                 INSERT INTO destinos (nombre, descripcion, actividades, costo_base)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id
-            """)
+                VALUES (:1, :2, :3, :4)
+                RETURNING id INTO :5
+            """
             valores = (destino.nombre, destino.descripcion, destino.actividades, destino.costo_base)
-
-        try:
-            cursor.execute(sql, valores)
-            if not destino.id_destino:
-                destino.id_destino = cursor.fetchone()[0]
-            self.bd.conexion.commit()
-            return destino
-        except Exception as e:
-            self.bd.conexion.rollback()
-            print(f"Error al guardar destino: {e}")
-            return None
+            try:
+                id_variable = cursor.var(oracledb.NUMBER)
+                cursor.execute(sql, (*valores, id_variable))
+                destino.id_destino = id_variable.getvalue()[0]
+                self.bd.conexion.commit()
+                return destino
+            except Exception as e:
+                self.bd.conexion.rollback()
+                print(f"Error al guardar destino: {e}")
+                return None
 
     def obtener_todos(self):
         cursor = self.bd.obtener_cursor()
         if not cursor:
             return []
-        cursor.execute(query_compat("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos"))
+        cursor.execute("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos")
         filas = cursor.fetchall()
         return [Destino(*fila) for fila in filas]
 
@@ -69,7 +57,7 @@ class RepositorioDestino:
         cursor = self.bd.obtener_cursor()
         if not cursor:
             return None
-        cursor.execute(query_compat("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos WHERE id = %s"), (id_destino,))
+        cursor.execute("SELECT id, nombre, descripcion, actividades, costo_base FROM destinos WHERE id = :1", (id_destino,))
         resultado = cursor.fetchone()
         if resultado:
             return Destino(*resultado)
@@ -80,7 +68,7 @@ class RepositorioDestino:
         if not cursor:
             return False
         try:
-            cursor.execute(query_compat("DELETE FROM destinos WHERE id = %s"), (id_destino,))
+            cursor.execute("DELETE FROM destinos WHERE id = :1", (id_destino,))
             self.bd.conexion.commit()
             return True
         except Exception as e:
