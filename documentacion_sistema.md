@@ -90,20 +90,20 @@ classDiagram
 Describe las interacciones entre los usuarios (actores) y las funcionalidades del sistema.
 
 ```mermaid
-useCaseDiagram
-    actor "Cliente" as C
-    actor "Administrador" as A
+flowchart TD
+    C["Cliente"]
+    A["Administrador"]
 
-    package "Viajes Aventura System" {
-        usecase "Registrarse / Login" as UC1
-        usecase "Ver Paquetes Disponibles" as UC2
-        usecase "Reservar Paquete" as UC3
-        usecase "Ver mis Reservas" as UC4
+    subgraph "Viajes Aventura System"
+        UC1["Registrarse / Login"]
+        UC2["Ver Paquetes Disponibles"]
+        UC3["Reservar Paquete"]
+        UC4["Ver mis Reservas"]
         
-        usecase "Gestionar Destinos (CRUD)" as UC5
-        usecase "Crear Paquetes Turísticos" as UC6
-        usecase "Actualizar Precios/Disponibilidad" as UC7
-    }
+        UC5["Gestionar Destinos (CRUD)"]
+        UC6["Crear Paquetes Turísticos"]
+        UC7["Actualizar Precios/Disponibilidad"]
+    end
 
     C --> UC1
     C --> UC2
@@ -115,7 +115,7 @@ useCaseDiagram
     A --> UC6
     A --> UC7
     
-    UC6 ..> UC5 : <<include>>
+    UC6 -.->|"<<include>>"| UC5
 ```
 
 ---
